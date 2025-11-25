@@ -1,0 +1,52 @@
+# Build directories
+build/
+*/build/
+**/build/
+
+# Compiled binaries
+*.o
+*.so
+*.dylib
+*.a
+*.dll
+*.exe
+*.out
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg
+*.egg-info/
+dist/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+
+# Blender
+*.blend1
+*.blend2
+
+# Test output
+output/
+*.log
+*.tmp

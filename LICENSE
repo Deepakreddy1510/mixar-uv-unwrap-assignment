@@ -1,0 +1,40 @@
+UV Unwrapping Assignment License
+Copyright (c) 2025 Mixar
+
+This coding assignment is provided for evaluation purposes only as part of
+Mixar's hiring process.
+
+CANDIDATE RIGHTS:
+
+  - You may complete this assignment as part of Mixar's hiring process
+  - You may include your implementation in your professional portfolio
+  - You may discuss your solution in technical interviews with other companies
+  - You retain all rights to the code you write for this assignment
+  - You may use your implementation for personal projects
+
+RESTRICTIONS:
+
+  - You may not redistribute this assignment or its materials to other candidates
+  - You may not publish this assignment online or share it publicly
+  - You may not use any part of this assignment commercially
+  - You may not remove or modify this license notice from assignment materials
+
+ASSIGNMENT MATERIALS:
+
+The following are provided by Mixar and remain Mixar's property:
+  - Assignment description and requirements (ASSIGNMENT.md)
+  - Test data and validation meshes (test_data/)
+  - Reference documentation (reference/ directories)
+  - Skeleton code and templates (starter_code/)
+
+Your implementation of the required functionality is your own work.
+
+DISCLAIMER:
+
+THE ASSIGNMENT IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL MIXAR
+BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY ARISING FROM THE USE OF
+THIS ASSIGNMENT.
+
+For questions about this license, contact: ajay@mixar.app

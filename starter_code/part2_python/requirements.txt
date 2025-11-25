@@ -1,0 +1,12 @@
+# Python 3.8+ required
+
+# Core dependencies
+numpy>=1.20.0
+scipy>=1.7.0
+
+# CLI and utilities
+tqdm>=4.60.0
+
+# Testing
+pytest>=7.0.0
+pytest-cov>=3.0.0
