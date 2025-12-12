@@ -1,0 +1,127 @@
+
+========================================
+UV Unwrapping Test Suite
+========================================
+
+[TEST] Topology - 01_cube.obj...Loaded ../../test_data/meshes/01_cube.obj: 8 vertices, 12 triangles
+ PASS (Euler: 2)
+[TEST] Topology - 03_sphere.obj...Loaded ../../test_data/meshes/03_sphere.obj: 42 vertices, 80 triangles
+ PASS (Euler: 2)
+[TEST] Seam Detection - 01_cube.obj...Loaded ../../test_data/meshes/01_cube.obj: 8 vertices, 12 triangles
+Detected 11 seams
+ PASS (11 seams)
+[TEST] Seam Detection - 03_sphere.obj...Loaded ../../test_data/meshes/03_sphere.obj: 42 vertices, 80 triangles
+Detected 1 seams
+ PASS (1 seams)
+[TEST] Seam Detection - 02_cylinder.obj...Loaded ../../test_data/meshes/02_cylinder.obj: 64 vertices, 68 triangles
+Detected 3 seams
+ PASS (3 seams)
+[TEST] Unwrap - 01_cube.obj...Loaded ../../test_data/meshes/01_cube.obj: 8 vertices, 12 triangles
+
+=== UV Unwrapping ===
+Input: 8 vertices, 12 triangles
+Parameters:
+  Angle threshold: 30.0°
+  Min island faces: 5
+  Pack islands: yes
+  Island margin: 0.020
+
+Topology validation:
+  V=8, E=18, F=12
+  Euler characteristic: 2 (expected 2 for closed mesh)
+Detected 11 seams
+Extracted 5 UV islands
+
+Processing island 1/5...
+  4 faces in island
+  Skipping (too small)
+
+Processing island 2/5...
+  2 faces in island
+  Skipping (too small)
+
+Processing island 3/5...
+  2 faces in island
+  Skipping (too small)
+
+Processing island 4/5...
+  2 faces in island
+  Skipping (too small)
+
+Processing island 5/5...
+  2 faces in island
+  Skipping (too small)
+Packing 5 islands...
+  Packing completed
+Quality metrics: (using defaults - implement for accurate values)
+  Avg stretch: 1.00
+  Max stretch: 1.00
+  Coverage: 70.0%
+
+=== Unwrapping Complete ===
+ PASS (islands=5, stretch=1.00)
+[TEST] Unwrap - 03_sphere.obj...Loaded ../../test_data/meshes/03_sphere.obj: 42 vertices, 80 triangles
+
+=== UV Unwrapping ===
+Input: 42 vertices, 80 triangles
+Parameters:
+  Angle threshold: 30.0°
+  Min island faces: 5
+  Pack islands: yes
+  Island margin: 0.020
+
+Topology validation:
+  V=42, E=120, F=80
+  Euler characteristic: 2 (expected 2 for closed mesh)
+Detected 1 seams
+Extracted 1 UV islands
+
+Processing island 1/1...
+  80 faces in island
+LSCM parameterizing 80 faces...
+LSCM parameterizing 80 faces...
+  Island has 0 vertices
+  LSCM failed for island 0
+Quality metrics: (using defaults - implement for accurate values)
+  Avg stretch: 1.00
+  Max stretch: 1.00
+  Coverage: 70.0%
+
+=== Unwrapping Complete ===
+ PASS (islands=1, stretch=1.00)
+[TEST] Unwrap - 02_cylinder.obj...Loaded ../../test_data/meshes/02_cylinder.obj: 64 vertices, 68 triangles
+
+=== UV Unwrapping ===
+Input: 64 vertices, 68 triangles
+Parameters:
+  Angle threshold: 30.0°
+  Min island faces: 5
+  Pack islands: yes
+  Island margin: 0.020
+
+Topology validation:
+  V=64, E=132, F=68
+  Euler characteristic: 0 (expected 2 for closed mesh)
+  Warning: Non-standard Euler characteristic
+  (This may be OK for open meshes or meshes with boundaries)
+Detected 3 seams
+Extracted 1 UV islands
+
+Processing island 1/1...
+  68 faces in island
+LSCM parameterizing 68 faces...
+LSCM parameterizing 68 faces...
+  Island has 0 vertices
+  LSCM failed for island 0
+Quality metrics: (using defaults - implement for accurate values)
+  Avg stretch: 1.00
+  Max stretch: 1.00
+  Coverage: 70.0%
+
+=== Unwrapping Complete ===
+ PASS (islands=1, stretch=1.00)
+
+========================================
+Results: 8 passed, 0 failed
+========================================
+

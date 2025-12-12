@@ -1,0 +1,38 @@
+{
+  "../test_data/meshes/03_sphere.obj": {
+    "ok": true,
+    "result": {
+      "stretch_max": 1.0,
+      "coverage": 0.699999988079071,
+      "angle_dist_rad": 0.0,
+      "angle_dist_deg": 0.0
+    }
+  },
+  "../test_data/meshes/02_cylinder.obj": {
+    "ok": true,
+    "result": {
+      "stretch_max": 1.0,
+      "coverage": 0.699999988079071,
+      "angle_dist_rad": 0.0,
+      "angle_dist_deg": 0.0
+    }
+  },
+  "../test_data/meshes/01_cube.obj": {
+    "ok": true,
+    "result": {
+      "stretch_max": 1.0,
+      "coverage": 0.699999988079071,
+      "angle_dist_rad": 0.0,
+      "angle_dist_deg": 0.0
+    }
+  },
+  "../test_data/meshes/04_torus.obj": {
+    "ok": true,
+    "result": {
+      "stretch_max": 1.0,
+      "coverage": 0.699999988079071,
+      "angle_dist_rad": 0.0,
+      "angle_dist_deg": 0.0
+    }
+  }
+}

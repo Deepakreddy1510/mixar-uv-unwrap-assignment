@@ -1,0 +1,175 @@
+==121729== Memcheck, a memory error detector
+==121729== Copyright (C) 2002-2017, and GNU GPL'd, by Julian Seward et al.
+==121729== Using Valgrind-3.18.1 and LibVEX; rerun with -h for copyright info
+==121729== Command: ./test_unwrap
+==121729== 
+Warning: UV count mismatch in ../../test_data/meshes/01_cube.obj
+  Expected: 8 UVs (8 vertices)
+  Found:    14 UVs
+  UVs will be ignored.
+Warning: UV count mismatch in ../../test_data/meshes/03_sphere.obj
+  Expected: 42 UVs (42 vertices)
+  Found:    63 UVs
+  UVs will be ignored.
+Warning: UV count mismatch in ../../test_data/meshes/01_cube.obj
+  Expected: 8 UVs (8 vertices)
+  Found:    14 UVs
+  UVs will be ignored.
+Warning: UV count mismatch in ../../test_data/meshes/03_sphere.obj
+  Expected: 42 UVs (42 vertices)
+  Found:    63 UVs
+  UVs will be ignored.
+Warning: UV count mismatch in ../../test_data/meshes/02_cylinder.obj
+  Expected: 64 UVs (64 vertices)
+  Found:    130 UVs
+  UVs will be ignored.
+Warning: UV count mismatch in ../../test_data/meshes/01_cube.obj
+  Expected: 8 UVs (8 vertices)
+  Found:    14 UVs
+  UVs will be ignored.
+Warning: UV count mismatch in ../../test_data/meshes/03_sphere.obj
+  Expected: 42 UVs (42 vertices)
+  Found:    63 UVs
+  UVs will be ignored.
+LSCM: Island too small (0 vertices)
+Warning: UV count mismatch in ../../test_data/meshes/02_cylinder.obj
+  Expected: 64 UVs (64 vertices)
+  Found:    130 UVs
+  UVs will be ignored.
+LSCM: Island too small (0 vertices)
+
+========================================
+UV Unwrapping Test Suite
+========================================
+
+[TEST] Topology - 01_cube.obj...Loaded ../../test_data/meshes/01_cube.obj: 8 vertices, 12 triangles
+ PASS (Euler: 2)
+[TEST] Topology - 03_sphere.obj...Loaded ../../test_data/meshes/03_sphere.obj: 42 vertices, 80 triangles
+ PASS (Euler: 2)
+[TEST] Seam Detection - 01_cube.obj...Loaded ../../test_data/meshes/01_cube.obj: 8 vertices, 12 triangles
+Detected 11 seams
+ PASS (11 seams)
+[TEST] Seam Detection - 03_sphere.obj...Loaded ../../test_data/meshes/03_sphere.obj: 42 vertices, 80 triangles
+Detected 1 seams
+ PASS (1 seams)
+[TEST] Seam Detection - 02_cylinder.obj...Loaded ../../test_data/meshes/02_cylinder.obj: 64 vertices, 68 triangles
+Detected 3 seams
+ PASS (3 seams)
+[TEST] Unwrap - 01_cube.obj...Loaded ../../test_data/meshes/01_cube.obj: 8 vertices, 12 triangles
+
+=== UV Unwrapping ===
+Input: 8 vertices, 12 triangles
+Parameters:
+  Angle threshold: 30.0°
+  Min island faces: 5
+  Pack islands: yes
+  Island margin: 0.020
+
+Topology validation:
+  V=8, E=18, F=12
+  Euler characteristic: 2 (expected 2 for closed mesh)
+Detected 11 seams
+Extracted 5 UV islands
+
+Processing island 1/5...
+  4 faces in island
+  Skipping (too small)
+
+Processing island 2/5...
+  2 faces in island
+  Skipping (too small)
+
+Processing island 3/5...
+  2 faces in island
+  Skipping (too small)
+
+Processing island 4/5...
+  2 faces in island
+  Skipping (too small)
+
+Processing island 5/5...
+  2 faces in island
+  Skipping (too small)
+Packing 5 islands...
+  Packing completed
+Quality metrics: (using defaults - implement for accurate values)
+  Avg stretch: 1.00
+  Max stretch: 1.00
+  Coverage: 70.0%
+
+=== Unwrapping Complete ===
+ PASS (islands=5, stretch=1.00)
+[TEST] Unwrap - 03_sphere.obj...Loaded ../../test_data/meshes/03_sphere.obj: 42 vertices, 80 triangles
+
+=== UV Unwrapping ===
+Input: 42 vertices, 80 triangles
+Parameters:
+  Angle threshold: 30.0°
+  Min island faces: 5
+  Pack islands: yes
+  Island margin: 0.020
+
+Topology validation:
+  V=42, E=120, F=80
+  Euler characteristic: 2 (expected 2 for closed mesh)
+Detected 1 seams
+Extracted 1 UV islands
+
+Processing island 1/1...
+  80 faces in island
+LSCM parameterizing 80 faces...
+LSCM parameterizing 80 faces...
+  Island has 0 vertices
+  LSCM failed for island 0
+Quality metrics: (using defaults - implement for accurate values)
+  Avg stretch: 1.00
+  Max stretch: 1.00
+  Coverage: 70.0%
+
+=== Unwrapping Complete ===
+ PASS (islands=1, stretch=1.00)
+[TEST] Unwrap - 02_cylinder.obj...Loaded ../../test_data/meshes/02_cylinder.obj: 64 vertices, 68 triangles
+
+=== UV Unwrapping ===
+Input: 64 vertices, 68 triangles
+Parameters:
+  Angle threshold: 30.0°
+  Min island faces: 5
+  Pack islands: yes
+  Island margin: 0.020
+
+Topology validation:
+  V=64, E=132, F=68
+  Euler characteristic: 0 (expected 2 for closed mesh)
+  Warning: Non-standard Euler characteristic
+  (This may be OK for open meshes or meshes with boundaries)
+Detected 3 seams
+Extracted 1 UV islands
+
+Processing island 1/1...
+  68 faces in island
+LSCM parameterizing 68 faces...
+LSCM parameterizing 68 faces...
+  Island has 0 vertices
+  LSCM failed for island 0
+Quality metrics: (using defaults - implement for accurate values)
+  Avg stretch: 1.00
+  Max stretch: 1.00
+  Coverage: 70.0%
+
+=== Unwrapping Complete ===
+ PASS (islands=1, stretch=1.00)
+
+========================================
+Results: 8 passed, 0 failed
+========================================
+
+==121729== 
+==121729== HEAP SUMMARY:
+==121729==     in use at exit: 0 bytes in 0 blocks
+==121729==   total heap usage: 3,971 allocs, 3,971 frees, 302,652 bytes allocated
+==121729== 
+==121729== All heap blocks were freed -- no leaks are possible
+==121729== 
+==121729== For lists of detected and suppressed errors, rerun with: -s
+==121729== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)

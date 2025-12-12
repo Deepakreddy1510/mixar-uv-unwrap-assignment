@@ -1,159 +1,53 @@
 # ALGORITHM.md
 
 ## Overview
-This project implements a complete automatic UV unwrapping pipeline consisting of:
-- Topology builder: extracts unique mesh edges and adjacent faces.
-- Seam detection: selects optimal seam edges using curvature, dual-graph structure, and dihedral angles.
-- LSCM parameterization: computes UV coordinates using Least Squares Conformal Maps.
-- Island packing: packs UV islands into the unit square with margins.
+This implementation provides an automatic UV unwrapping pipeline consisting of:
+- Topology builder: extract unique edges and adjacent faces (edge_face adjacency).
+- Seam detection: hybrid strategy using dihedral angles, boundary-loop representatives,
+  and a fallback. Also uses angular defect heuristics for curvature-aware refinement.
+- Island extraction: connected components in face graph after seam cuts.
+- Parameterization: LSCM per-island (using Eigen for linear algebra).
+- Packing: simple shelf-like packing with margins and scaling to [0,1]².
+- Quality metrics: stretch (SVD-based), coverage (rasterized), and angle distortion.
 
-This document summarizes the algorithms implemented in Part 1 (C++ engine).
+## Topology
+- Build edges for every triangle (normalize edge as (min,max)).
+- Maintain `edge_faces` array: for each edge store up to two adjacent faces; boundary edge has -1.
+- Validate: compute Euler characteristic `χ = V - E + F` for sanity checks.
 
----------------------------------------------------------
+## Seam detection
+- For each internal edge compute dihedral angle between adjacent face normals (degrees).
+- Mark edges whose dihedral ≥ threshold (adaptive thresholding included).
+- Add boundary-edge representatives: group boundary edges by connected components (loop) and pick one per loop.
+- Fallback: if no seams, pick edge with maximal dihedral.
+- Output: list of seam edge indices.
 
-## 1. Topology Construction
+## Island extraction
+- Remove seam edges and build face adjacency graph using remaining edges.
+- Compute connected components (BFS) over faces.
+- Assign island id per face, return `face_island_ids` and `num_islands`.
 
-For a mesh with:
-- vertices (3 × V floats)
-- triangles (3 × F ints)
+## LSCM Parameterization
+- For each island:
+  - Build local vertex index mapping (global → local).
+  - Build local triangle list and call `lscm_parameterize`.
+  - Copy per-vertex UVs into global result (respecting global indices).
+- Skip islands smaller than `min_island_faces`.
+- Use Eigen sparse linear solver for LSCM.
 
-We compute:
+## Packing
+- Compute per-island UV bounding boxes.
+- Sort islands by height and place them into rows (shelf algorithm).
+- Apply uniform scale to fit all islands into [0,1]² while respecting margin.
 
-### 1.1 Edge Extraction
-For each triangle (a, b, c):
-- Create edges (a,b), (b,c), (c,a).
-- Normalize as (min(v0,v1), max(v0,v1)).
-- Insert into a map/dictionary to enforce uniqueness.
+## Quality Metrics
+- **Stretch**: per-triangle Jacobian (3×2) singular values via SVD, report max ratio σ1/σ2.
+- **Coverage**: rasterize triangles into resolution×resolution grid and report filled pixel fraction.
+- **Angle distortion**: per-triangle compare 3D angles vs UV angles, report max absolute difference.
 
-### 1.2 Adjacent Faces
-Each unique edge stores:
-- face0 — first triangle using the edge
-- face1 — second triangle, or -1 if boundary
+## Notes / Limitations
+- Islands that are very small are skipped for LSCM (left as zero-uvs or rely on packing).
+- Packing is shelf-based and not optimal; fine for baseline functionality.
+- Provided heuristics for seam detection work for test meshes; may need tuning for complex geometry.
 
-### 1.3 Euler Validation
-Compute Euler characteristic:
-    Euler = V – E + F
-
-Closed meshes must satisfy:
-    Euler = 2
-
-Open meshes may differ.
-
----------------------------------------------------------
-
-## 2. Seam Detection
-
-Implemented in src/seam_detection.cpp.
-
-### 2.1 Dual Graph Construction
-- Each face is a node.
-- Two nodes are connected if faces share a mesh edge.
-
-### 2.2 Spanning Tree via BFS
-- Start BFS from face 0.
-- Internal edges *not* used in BFS become initial seam candidates.
-
-### 2.3 Dihedral Angle Analysis
-For each internal edge:
-1. Compute normals of adjacent triangles.
-2. Compute dihedral angle:
-       angle = arccos(dot(n0, n1))
-3. Convert to degrees.
-4. If angle ≥ threshold → mark as seam.
-
-### Adaptive thresholding
-- Base threshold: user input (≈30°)
-- Increased slightly for noisy meshes
-- If threshold <= 1, interpret as radians
-
-### 2.4 Boundary Loop Reduction
-- All boundary edges are identified.
-- Connected boundary edges are grouped into loops.
-- Only *one representative seam per loop* is kept (prevents over-segmentation).
-
-### 2.5 Angular Defect Refinement
-For each vertex:
-    defect = 2π – sum(angles around vertex)
-
-If defect > 0.5 radians:
-- Mark all edges touching that vertex as seams.
-- Helps capture sharp corners (e.g., cubes).
-
-### 2.6 Fallback Rule
-If no seams found:
-- Pick the edge with maximum dihedral angle.
-
-### 2.7 Seam Count Normalization
-- Ensures reasonable seam count for cylinders and spheres.
-
----------------------------------------------------------
-
-## 3. LSCM (Least Squares Conformal Maps)
-
-### 3.1 Cotangent Weight System
-Build a sparse linear system A using cotangent weights:
-    Σ_j w_ij * (u_i - u_j) = 0
-    Σ_j w_ij * (v_i - v_j) = 0
-
-### 3.2 Pinning Strategy
-- Fix two non-collinear vertices.
-- Removes null space from the solver.
-
-### 3.3 Solve Sparse System
-- Use Eigen’s sparse solver.
-- Solve linear system for U and V coordinates.
-
-### 3.4 Normalization
-After computing UVs:
-- Translate so min = 0
-- Scale so max = 1
-
----------------------------------------------------------
-
-## 4. UV Island Extraction & Packing
-
-### 4.1 Island Detection
-Using seam edges:
-- BFS over faces to form UV islands.
-
-### 4.2 Bounding Boxes
-Compute (min_u, max_u, min_v, max_v) for each island.
-
-### 4.3 Shelf Packing Algorithm
-For each island:
-- Place left → right in rows.
-- Move to new row when width exceeded.
-- Maintain margin (typically 0.02).
-
-### 4.4 Global Normalization
-Scale all islands to fit inside [0,1] × [0,1].
-
----------------------------------------------------------
-
-## 5. Test Compliance 
-
-The implementation satisfies the full Part 1 specification:
-
-| Test | Expected | Your Result |
-|------|----------|-------------|
-| Cube seams | 7–11 | 11 |
-| Sphere seams | 1–3 | 1 |
-| Cylinder seams | 1–3 | 3 |
-| Euler characteristic | Correct | Pass |
-| Memory leaks | None | Pass |
-| All Part 1 tests | Pass | 8/8 |
-
----------------------------------------------------------
-
-## Summary
-
-The C++ engine now includes:
-- Complete topology builder
-- Robust seam detection
-- LSCM parameterization
-- UV island packing
-- Zero memory leaks
-- Full test suite compliance
-
-This fully completes Part 1 of the Mixar UV Unwrapping Assignment.
 
