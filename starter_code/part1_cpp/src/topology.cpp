@@ -77,7 +77,66 @@ TopologyInfo* build_topology(const Mesh* mesh) {
     topo->num_edges = 0;
     topo->edge_faces = NULL;
 
-    // TODO: Your implementation here
+    // ===============================
+    // BUILD TOPOLOGY IMPLEMENTATION
+    // ===============================
+    std::map<Edge, EdgeInfo> edge_map;
+
+    // 1. Collect edges from all triangles (mesh->triangles is flat: 3 * num_triangles)
+    for (int f = 0; f < mesh->num_triangles; ++f) {
+        int base = 3 * f;
+        int v0 = mesh->triangles[base + 0];
+        int v1 = mesh->triangles[base + 1];
+        int v2 = mesh->triangles[base + 2];
+
+        Edge e0(v0, v1);
+        Edge e1(v1, v2);
+        Edge e2(v2, v0);
+
+        Edge edgesArr[3] = { e0, e1, e2 };
+        for (int i = 0; i < 3; ++i) {
+            Edge &Ekey = edgesArr[i];
+            EdgeInfo &info = edge_map[Ekey]; // default-constructed if missing
+            if (info.face0 == -1) info.face0 = f;
+            else if (info.face1 == -1) info.face1 = f;
+            // If there are more than 2 adjacent faces something is wrong; ignore extra.
+        }
+    }
+
+    // 2. Convert map to plain arrays (TopologyInfo expects int* arrays)
+    int numE = (int)edge_map.size();
+    topo->num_edges = numE;
+
+    if (numE > 0) {
+        topo->edges = (int*)malloc(sizeof(int) * 2 * numE);
+        topo->edge_faces = (int*)malloc(sizeof(int) * 2 * numE);
+        if (!topo->edges || !topo->edge_faces) {
+            // allocation failed - cleanup and return NULL
+            if (topo->edges) free(topo->edges);
+            if (topo->edge_faces) free(topo->edge_faces);
+            free(topo);
+            return NULL;
+        }
+    } else {
+        topo->edges = NULL;
+        topo->edge_faces = NULL;
+    }
+
+    int idx = 0;
+    for (const auto &kv : edge_map) {
+        const Edge &e = kv.first;
+        const EdgeInfo &info = kv.second;
+
+        topo->edges[2*idx + 0] = e.v0;
+        topo->edges[2*idx + 1] = e.v1;
+
+        topo->edge_faces[2*idx + 0] = info.face0;
+        topo->edge_faces[2*idx + 1] = info.face1;
+
+        ++idx;
+    }
+
+
 
     return topo;
 }

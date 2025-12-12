@@ -1,176 +1,247 @@
 """
 Quality metrics for UV mappings
 
-TEMPLATE - YOU IMPLEMENT
+Implements:
+- compute_stretch(mesh, uvs)
+- compute_coverage(uvs, triangles, resolution=1024)
+- compute_angle_distortion(mesh, uvs)
 
-Computes:
-- Stretch: UV→3D Jacobian singular value ratio
-- Coverage: Percentage of [0,1]² used
-- Angle distortion: Max angle difference
-
-See reference/metrics_spec.md for exact formulas
+Notes:
+- Mesh is expected to have attributes:
+    .vertices -> (N,3) numpy array
+    .triangles -> (M,3) numpy array (or flat length 3*M)
+- UVs is (N,2) numpy array
 """
 
 import numpy as np
 
 
+def _ensure_tris_array(triangles):
+    arr = np.array(triangles, copy=False)
+    if arr.ndim == 1 and arr.size % 3 == 0:
+        arr = arr.reshape((-1, 3))
+    return arr.astype(np.int32)
+
+
 def compute_stretch(mesh, uvs):
     """
-    Compute maximum stretch across all triangles
+    Compute maximum stretch across all triangles.
 
-    Stretch measures how much the UV mapping distorts the mesh.
-
-    Algorithm:
-    For each triangle:
-        1. Build Jacobian J (UV → 3D mapping)
-        2. Compute singular values σ1, σ2 via SVD
-        3. stretch = max(σ1/σ2, σ2/σ1)
-
-    Args:
-        mesh: Mesh object with vertices and triangles
-        uvs: UV coordinates (N, 2) array
-
-    Returns:
-        float: Maximum stretch value
-
-    IMPLEMENTATION REQUIRED
-    See reference/metrics_spec.md for exact formula
+    Return: float (max stretch across triangles).
     """
-    # TODO: Implement
-    #
-    # Steps:
-    # 1. For each triangle:
-    #      Get 3D positions p0, p1, p2
-    #      Get UV positions uv0, uv1, uv2
-    #
-    # 2. Compute edge vectors:
-    #      dp1 = p1 - p0 (3D)
-    #      dp2 = p2 - p0 (3D)
-    #      duv1 = uv1 - uv0 (2D)
-    #      duv2 = uv2 - uv0 (2D)
-    #
-    # 3. Build Jacobian J:
-    #      J = [dp1 | dp2] @ inv([[duv1], [duv2]])
-    #      Result is 3×2 matrix
-    #
-    # 4. Compute SVD:
-    #      U, S, Vt = np.linalg.svd(J)
-    #      σ1, σ2 = S[0], S[1]
-    #
-    # 5. Stretch for this triangle:
-    #      stretch = max(σ1/σ2, σ2/σ1)
-    #
-    # 6. Return max stretch across all triangles
+    verts = np.array(mesh.vertices, dtype=np.float64)
+    tris = _ensure_tris_array(mesh.triangles)
 
-    pass  # YOUR CODE HERE
+    uvs = np.array(uvs, dtype=np.float64)
+
+    max_stretch = 0.0
+
+    for tri in tris:
+        i0, i1, i2 = tri
+        p0 = verts[i0]; p1 = verts[i1]; p2 = verts[i2]
+        uv0 = uvs[i0]; uv1 = uvs[i1]; uv2 = uvs[i2]
+
+        # Edge vectors in 3D
+        dp1 = p1 - p0  # 3
+        dp2 = p2 - p0  # 3
+
+        # Edge vectors in UV (2D)
+        duv1 = uv1 - uv0  # 2
+        duv2 = uv2 - uv0  # 2
+
+        # Build 3x2 and 2x2 matrices
+        A = np.column_stack((dp1, dp2))  # 3x2
+        B = np.column_stack((duv1, duv2))  # 2x2
+
+        # If UV triangle is degenerate, skip (cannot invert)
+        det = B[0, 0] * B[1, 1] - B[0, 1] * B[1, 0]
+        if abs(det) < 1e-12:
+            # degenerate UV mapping — treat as high stretch
+            continue
+
+        try:
+            Binv = np.linalg.inv(B)  # 2x2
+        except np.linalg.LinAlgError:
+            continue
+
+        # Jacobian J: 3x2 = A (3x2) @ Binv (2x2)
+        J = A.dot(Binv)
+
+        # Compute singular values of J (only two non-zero singular values at most)
+        # Use SVD; S contains singular values sorted descending
+        try:
+            s = np.linalg.svd(J, compute_uv=False)
+        except np.linalg.LinAlgError:
+            continue
+
+        if s.size < 2:
+            continue
+        s1, s2 = s[0], s[1]
+        if s2 <= 0:
+            continue
+        stretch = max(s1 / s2, s2 / s1)
+        if stretch > max_stretch:
+            max_stretch = stretch
+
+    # if no triangles produced a valid value, return 1.0 (no distortion)
+    if max_stretch == 0.0:
+        return 1.0
+    return float(max_stretch)
 
 
 def compute_coverage(uvs, triangles, resolution=1024):
     """
-    Compute UV coverage (percentage of [0,1]² covered)
+    Rasterize UV triangles into resolution x resolution grid and compute coverage fraction.
 
-    Algorithm:
-    1. Rasterize UVs to resolution×resolution grid
-    2. Mark pixels covered by triangles
-    3. Return percentage of pixels covered
-
-    Args:
-        uvs: UV coordinates (N, 2) array
-        triangles: Triangle indices (M, 3) array
-        resolution: Grid resolution (default 1024)
-
-    Returns:
-        float: Coverage (0.0 to 1.0)
-
-    IMPLEMENTATION REQUIRED
-    See reference/metrics_spec.md for details
+    Returns: float in [0,1]
     """
-    # TODO: Implement
-    #
-    # Steps:
-    # 1. Create boolean grid (resolution × resolution)
-    # 2. For each triangle:
-    #      Scale UVs to grid coordinates
-    #      Rasterize triangle (mark covered pixels)
-    # 3. Count covered pixels
-    # 4. Return covered / total
+    uvs = np.array(uvs, dtype=np.float64)
+    tris = _ensure_tris_array(triangles)
 
-    # Helper function for rasterization
+    if uvs.size == 0 or tris.size == 0:
+        return 0.0
+
+    # Normalize UVs to [0,1]
+    # Some UVs may already be in range; clamp afterwards.
+    uv = np.array(uvs, dtype=np.float64)
+    # If UVs are outside 0..1, clamp them to that range for rasterization
+    uv = np.clip(uv, 0.0, 1.0)
+
+    # grid boolean
+    H = W = int(resolution)
+    grid = np.zeros((H, W), dtype=np.bool_)
+
     def rasterize_triangle(grid, uv0, uv1, uv2):
-        """Mark pixels covered by triangle"""
-        # TODO: Implement triangle rasterization
-        #
-        # Hints:
-        # - Find bounding box
-        # - For each pixel in bounding box:
-        #     Check if inside triangle (barycentric test)
-        #     If inside, mark grid[y, x] = True
-        pass
+        # Scale to grid coordinates [0, W-1] and [0, H-1], using pixel centers
+        pts = np.array([uv0, uv1, uv2], dtype=np.float64)
+        pts_pix = pts * np.array([W - 1.0, H - 1.0])
+        xs = pts_pix[:, 0]
+        ys = pts_pix[:, 1]
 
-    pass  # YOUR CODE HERE
+        # bounding box
+        min_x = int(max(0, np.floor(xs.min())))
+        max_x = int(min(W - 1, np.ceil(xs.max())))
+        min_y = int(max(0, np.floor(ys.min())))
+        max_y = int(min(H - 1, np.ceil(ys.max())))
+        if min_x > max_x or min_y > max_y:
+            return
+
+        # Precompute for barycentric
+        x0, y0 = xs[0], ys[0]
+        x1, y1 = xs[1], ys[1]
+        x2, y2 = xs[2], ys[2]
+        denom = (y1 - y2) * (x0 - x2) + (x2 - x1) * (y0 - y2)
+        if abs(denom) < 1e-12:
+            return  # degenerate triangle in pixel space
+
+        # iterate pixels in bbox
+        for py in range(min_y, max_y + 1):
+            for px in range(min_x, max_x + 1):
+                # pixel center
+                cx = px + 0.5
+                cy = py + 0.5
+                # barycentric coordinates
+                w0 = ((y1 - y2) * (cx - x2) + (x2 - x1) * (cy - y2)) / denom
+                w1 = ((y2 - y0) * (cx - x2) + (x0 - x2) * (cy - y2)) / denom
+                w2 = 1.0 - w0 - w1
+                # inside if all barycentric in [0,1]
+                if (w0 >= -1e-8) and (w1 >= -1e-8) and (w2 >= -1e-8):
+                    grid[py, px] = True
+
+    # Rasterize each triangle
+    for tri in tris:
+        i0, i1, i2 = tri
+        uv0 = uv[i0]; uv1 = uv[i1]; uv2 = uv[i2]
+        # If triangle is completely outside [0,1], skip
+        if ((uv0[0] < 0 and uv1[0] < 0 and uv2[0] < 0) or
+            (uv0[0] > 1 and uv1[0] > 1 and uv2[0] > 1) or
+            (uv0[1] < 0 and uv1[1] < 0 and uv2[1] < 0) or
+            (uv0[1] > 1 and uv1[1] > 1 and uv2[1] > 1)):
+            continue
+        rasterize_triangle(grid, uv0, uv1, uv2)
+
+    covered = np.count_nonzero(grid)
+    total = float(H * W)
+    return float(covered) / total if total > 0 else 0.0
 
 
 def compute_angle_distortion(mesh, uvs):
     """
-    Compute maximum angle distortion
-
-    Measures how much angles change between 3D and UV space.
-
-    Algorithm:
-    For each triangle:
-        Compute 3 angles in 3D
-        Compute 3 angles in UV
-        Find max |angle_3d - angle_uv|
-
-    Args:
-        mesh: Mesh object
-        uvs: UV coordinates (N, 2) array
-
-    Returns:
-        float: Max angle distortion (radians)
-
-    IMPLEMENTATION REQUIRED
-    See reference/metrics_spec.md for formula
+    Compute maximum angle distortion (in radians) between 3D triangle angles and UV triangle angles.
     """
-    # TODO: Implement
-    #
-    # Steps:
-    # 1. For each triangle:
-    #      Compute 3 angles in 3D (using dot product)
-    #      Compute 3 angles in UV (using dot product)
-    #      Find max difference
-    # 2. Return max across all triangles
+    verts = np.array(mesh.vertices, dtype=np.float64)
+    tris = _ensure_tris_array(mesh.triangles)
+    uvs = np.array(uvs, dtype=np.float64)
 
-    def compute_triangle_angles_3d(p0, p1, p2):
-        """Compute 3 angles of 3D triangle"""
-        # TODO: Implement
-        # Angle at p0: arccos(dot(normalize(p1-p0), normalize(p2-p0)))
-        # Similar for p1 and p2
-        pass
+    def tri_angles_3d(p0, p1, p2):
+        # return three angles at p0,p1,p2
+        a0 = p1 - p0
+        b0 = p2 - p0
+        a1 = p0 - p1
+        b1 = p2 - p1
+        a2 = p0 - p2
+        b2 = p1 - p2
 
-    def compute_triangle_angles_2d(uv0, uv1, uv2):
-        """Compute 3 angles of 2D triangle"""
-        # TODO: Implement (same as 3D but in 2D)
-        pass
+        def ang(u, v):
+            nu = np.linalg.norm(u)
+            nv = np.linalg.norm(v)
+            if nu < 1e-12 or nv < 1e-12:
+                return 0.0
+            cosv = np.dot(u, v) / (nu * nv)
+            cosv = max(-1.0, min(1.0, cosv))
+            return np.arccos(cosv)
 
-    pass  # YOUR CODE HERE
+        return ang(a0, b0), ang(a1, b1), ang(a2, b2)
+
+    def tri_angles_2d(u0, u1, u2):
+        a0 = u1 - u0
+        b0 = u2 - u0
+        a1 = u0 - u1
+        b1 = u2 - u1
+        a2 = u0 - u2
+        b2 = u1 - u2
+
+        def ang(u, v):
+            nu = np.hypot(u[0], u[1])
+            nv = np.hypot(v[0], v[1])
+            if nu < 1e-12 or nv < 1e-12:
+                return 0.0
+            cosv = (u[0]*v[0] + u[1]*v[1]) / (nu * nv)
+            cosv = max(-1.0, min(1.0, cosv))
+            return np.arccos(cosv)
+
+        return ang(a0, b0), ang(a1, b1), ang(a2, b2)
+
+    max_diff = 0.0
+    for tri in tris:
+        i0, i1, i2 = tri
+        p0 = verts[i0]; p1 = verts[i1]; p2 = verts[i2]
+        u0 = uvs[i0]; u1 = uvs[i1]; u2 = uvs[i2]
+
+        angles3 = tri_angles_3d(p0, p1, p2)
+        angles2 = tri_angles_2d(u0, u1, u2)
+
+        # compute max absolute difference across the three angles
+        diffs = [abs(a3 - a2) for a3, a2 in zip(angles3, angles2)]
+        local_max = max(diffs)
+        if local_max > max_diff:
+            max_diff = local_max
+
+    return float(max_diff)
 
 
-# Example usage
+# Example usage (quick smoke test)
 if __name__ == "__main__":
-    # Test with simple triangle
     vertices = np.array([
         [0, 0, 0],
         [1, 0, 0],
-        [0.5, 0.866, 0],
+        [0.5, 0.8660254, 0],
     ], dtype=np.float32)
-
     triangles = np.array([[0, 1, 2]], dtype=np.int32)
-
     uvs = np.array([
         [0, 0],
         [1, 0],
-        [0.5, 0.866],
+        [0.5, 0.8660254],
     ], dtype=np.float32)
 
     class SimpleMesh:
@@ -179,8 +250,7 @@ if __name__ == "__main__":
             self.triangles = triangles
 
     mesh = SimpleMesh(vertices, triangles)
+    print("Stretch:", compute_stretch(mesh, uvs))
+    print("Coverage:", compute_coverage(uvs, triangles, resolution=128))
+    print("Angle distortion (rad):", compute_angle_distortion(mesh, uvs))
 
-    # Should be 1.0 (no distortion for this triangle)
-    print(f"Stretch: {compute_stretch(mesh, uvs)}")
-    print(f"Coverage: {compute_coverage(uvs, triangles)}")
-    print(f"Angle distortion: {compute_angle_distortion(mesh, uvs)}")
